@@ -27,8 +27,6 @@
   - 특수문자와 불필요한 공백 제거
   - 쉼표, 마침표 등 문체 보존에 중요한 구두점 유지
   - 감성 라벨링: TextBlob으로 Positive, Neutral, Negative로 분류하고 숫자로 매핑
-python
-코드 복사
 
   #####    문체 보존 전처리 함수
   ```
@@ -40,16 +38,21 @@ python
   ```
 
   
-2. 문체 학습 모델(GPT-2)
+2. 문체 학습 모델(GPT-2 Fine-Tuning)
 모델 구성:
-  - Hugging Face의 GPT-2 모델을 사용하여 특정 작가(author=3)의 데이터를 학습
+  - Hugging Face의 GPT-2 모델을 사용
+  - 특정 작가(author=3)의 데이터를 학습
   - 학습 데이터(90%), 평가 데이터(10%)로 분할 후 Fine-tuning
+
+    
   - 모델 학습:
-  - 학습 손실이 0.401로 수렴
-  - BLEU 점수를 사용하여 텍스트 생성 품질 평가
+  - 학습 손실 감소: 마지막 Epoch 기준 0.328
+  - BLEU 점수 - 모델 성능 평가
+
+    
   - 텍스트 생성:
-  - 프롬프트 "she"로 테스트한 결과, 학습된 문체를 반영한 문장을 생성
-     - 예: Generated Text: she should have told you then all that was going on in the house.
+  - 프롬프트 [We, The day was bright, she] 입력 시 텍스트 생성
+  - We have no doubt about that, but I am sure you may very well be quite right.
 
 
     ##### GPT-2 모델 텍스트 생성 파이프라인
@@ -65,8 +68,8 @@ python
   * TextBlob 감성 분석을 보완하기 위해 DistilBERT 기반 감성 분석 모델 구축
   * 학습 데이터(80%), 검증 데이터(10%), 테스트 데이터(10%)로 분할
   * 모델 학습 및 평가:
-  * 문체 반영 모델(Accuracy): 44.7%
-  * 문체 미반영 모델(Accuracy): 44.0%
+  * 문체 반영 모델(Accuracy): 22.8%
+  * 문체 미반영 모델(Accuracy): 04.1%
   * Precision, Recall, F1-score를 통해 감성 분석 성능 평가
 
 
@@ -83,64 +86,161 @@ python
     trainer.train()
     ```
 
-4. BLEU 점수 및 감성 분석 결과
+4. 문체 연관 감성 분석 결과
 
-   
-  BLEU 점수:
-* 평균 BLEU Score: 0.015~0.023
-* 최고 BLEU Score: 0.9199 (프롬프트 "she")
+
+- 학습모델
+* 평균 BLEU Score: 0.015~0.4
 * 감성 분석 분포:
-* Positive: 2건
-* Neutral: 1건
-* Negative: 0건
-
-##### BLEU 점수 계산
-
-```
-bleu_score = sentence_bleu([ref[0] for ref in references], candidate, weights=(0.5, 0.5), smoothing_function=smoothing)
+* Positive: 1건
+* Negative: 2건
 
 
-print(f"BLEU Score: {bleu_score:.4f}")
-```
+- 비학습모델
+* 평균 BLEU Score: 0.015~0.2
+* 감성 분석 분포:
+* Positive: 1건
+* Negative: 2건
+
 
 <br/>
 
 
 ## 🔍 주요 실험 결과
-### 문체 학습 모델(GPT-2)
-  - 프롬프트	생성 텍스트 (Generated Text)	BLEU Score
-  - "she"	she should have told you then all that was going on in the house.	0.9199
-  - "The day was bright"	The day was bright. A terrible cloud of fire arose on the horizon.	0.0170
-### 감성 분석(DistilBERT)
-  - 모델	Accuracy	Precision	Recall	F1-Score
-  - 문체 보존 모델	44.7%	43.9%	44.7%	43.5%
-  - 문체 미반영 모델	44.0%	43.5%	44.0%	43.3%
+### 1.문체 학습 모델(GPT-2)
+  - 프롬프트	생성 텍스트 (Generated Text)	평균 BLEU Score: 0.0657
+
+--------------------------------------------------
+--- Prompt: We ---
 
 
-##📈 시각화
-1. BLEU 점수 히스토그램: 각 프롬프트에 대한 BLEU 점수 분포
-2. 감성 분석 결과 바 차트:
-Positive, Neutral, Negative 분포
-3. 훈련 손실 그래프: Epoch별 Training Loss 감소 추이
-<br/>
+Generated Text: We have no doubt about that, but....
+
+
+BLEU Score: 0.7977
+
+
+--------------------------------------------------
+--- Prompt: The day was bright ---
+
+Generated Text: The day was bright, the clouds were thick, ....
+
+
+BLEU Score: 0.6921
+
+--------------------------------------------------
+--- Prompt: she ---
+
+
+Generated Text: she, odin, my dear odin, I beg you to....
+
+
+BLEU Score: 0.8452
+
+--------------------------------------------------
+
+### 2.학습 모델과 비학습 모델의 성능 비교
+
+--------------------------------------------------
+--- Comparison for Prompt 1 ---
+Prompt: We
+
+Trained Model:
+Generated Text: We have seen your letter and all....
+
+
+Sentiment: Positive
+
+
+BLEU Score: 0.2287
+
+
+Untrained Model:
+Generated Text: We just hope you understand and respect the...
+
+
+Sentiment: Negative
+
+
+BLEU Score: 0.0410
+
+--------------------------------------------------
+
+--- Comparison for Prompt 2 ---
+Prompt: The day was bright
+
+Trained Model:
+Generated Text: The day was bright, bright as ever,.....
+
+
+Sentiment: Negative
+
+
+BLEU Score: 0.0657
+
+
+
+
+
+
+Untrained Model:
+Generated Text: The day was bright, dark, and beautiful," he added...
+
+
+Sentiment: Positive
+
+
+BLEU Score: 0.0695
+
+--------------------------------------------------
+
+--- Comparison for Prompt 3 ---
+Prompt: she
+
+Trained Model:
+Generated Text: she was only eleven years old.....
+
+
+Sentiment: Negative
+
+
+BLEU Score: 0.1968
+
+
+
+
+Untrained Model:
+Generated Text: she would go. The next morning,.....
+
+
+Sentiment: Negative
+
+
+BLEU Score: 0.1400
+
+
+--------------------------------------------------
+
 
 ## 🛠 한계 및 개선 방향
-*한계
-  - BLEU 점수가 일부 프롬프트에서 낮게 측정됨 → 참조 문장 다양성 부족
-  - 감성 분석 모델의 성능 저조 → 라벨링 및 데이터 품질 문제
+### 한계
+  - BLEU 점수가 일부 프롬프트에서 낮게 측정됨
+    -   → 참조 문장 다양성 부족
+  - 감성 분석 모델의 성능 저조
+    - → 라벨링 및 데이터 품질 문제
   - 문체와 감성 간 관계를 명확히 입증하지 못함
-  - 
+    
 
-*개선 방향
+### 개선 방향
   - 다양한 데이터셋 활용:
-  - 여러 작가의 데이터를 학습하여 모델 일반화
+  - 데이터 증강을 통해 데이터 확보
   - 평가 지표 보완:
   - BLEU 외에 ROUGE, BERTScore 등 추가 지표 활용
   - 라벨링 개선 및 데이터 증강:
-  - 감성 라벨링 고도화 및 불균형 문제 해결
+  - 감정 라벨링 고도화 및 불균형 문제 해결
 <br/>
 
-##📚 참고문헌
+### 📚 참고문헌
 
 
 Radford, A., et al., 2019. "Language Models are Few-Shot Learners," Advances in Neural Information Processing Systems.
@@ -150,12 +250,15 @@ Zhang, T., et al., 2021. "Style Example-Guided Text Generation using Generative 
 <br/>
 
 
-##📝 실행 방법
+## 📝 실행 방법
 필요한 라이브러리 설치:
-bash
-코드 복사
-pip install datasets transformers textblob nltk
-Google Drive에서 데이터 로드 및 전처리.
-train.py를 실행하여 모델 학습 수행.
-generate.py로 텍스트 생성 및 BLEU 점수 계산.
-결과 분석 및 시각화.
+- pip install datasets transformers textblob nltk
+
+
+- Google Drive에서 데이터 로드 및 전처리.
+
+
+- train.py를 실행하여 모델 학습 수행.
+
+
+- generate.py로 텍스트 생성 및 BLEU 점수 계산.
